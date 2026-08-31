@@ -2,7 +2,18 @@
 
 All notable changes to this plugin are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
+string rather than imposing a semantic version it does not have.
+
+## [2026.8.29] - 2026-08-31
+
+### Changed
+- Version realigned to match the skill's own declared version (2026-08-29). The initial
+  publication used a placeholder 1.0.0.
+- README expanded substantially: worked examples with sample output, configuration,
+  troubleshooting, limitations, and design rationale.
+- Added the lookup chain, match criteria, the multi-agent re-verification rule, and worked audit output.
+
 
 ## [1.0.0] - 2026-08-31
 
