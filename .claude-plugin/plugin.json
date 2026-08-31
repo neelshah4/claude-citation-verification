@@ -1,0 +1,10 @@
+{
+  "name": "citation-verification",
+  "version": "1.0.0",
+  "description": "Verifies every PMID, DOI, PMC, arXiv, and NCT identifier against PubMed, Crossref, OpenAlex, and Semantic Scholar. Replaces anything unverifiable with [CITATION NEEDED].",
+  "author": {
+    "name": "Neel Shah, MD, MSc"
+  },
+  "homepage": "https://github.com/neelshah4/claude-citation-verification",
+  "license": "MIT"
+}
