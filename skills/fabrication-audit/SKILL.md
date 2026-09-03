@@ -254,7 +254,7 @@ Per-run case facts stay in this skill's own case log / memory store; only
 
 ## Versions
 
-- 2026-08-29 — Added the `## Self-improvement` section.
+- 2026-08-29 — Added the lint-enforced `## Self-improvement` contract block (capture via `skill-observation-add.sh`); no behavioral change.
 - **2026-06-04** — Best-practices pass (Anthropic "how we use skills"): added
   `lastReviewed`; added this Versions section. No trigger phrases, no Step 1-5 procedure,
   no scope boundary, and no output contract changed. The "Lessons learned (case log)" and

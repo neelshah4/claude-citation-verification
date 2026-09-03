@@ -27,3 +27,4 @@ string rather than imposing a semantic version it does not have.
   placeholder. Set your own address for better rate limits.
 - `extras/citation-audit.js` log directory is now `CITATION_AUDIT_LOG_DIR`, defaulting
   to `./logs/citation-audit/`.
+2026-09-03: Sync from canonical: retraction and erratum screening now by CommentsCorrections linkage (RetractionIn / ErratumIn / ExpressionOfConcernIn), not publication type; PMID extraction pattern widened to 5 to 9 digits with the measured 184 to 328 example; bundled fabrication-audit updated.

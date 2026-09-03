@@ -118,8 +118,15 @@ completely unrelated paper.
 - Verify by fetching the canonical resolver `https://arxiv.org/abs/<id>` (must return 200) and confirm title + first author match the citation. A 404 → the ID is wrong → search by title (OpenAlex/Semantic Scholar) and correct or mark `[CITATION NEEDED]`.
 - If the preprint was later published, prefer the published DOI/PMID but keep the arXiv ID only if it resolves.
 
-**RETRACTION CHECK (every citation, all identifier types):**
-- A citation can resolve with perfectly valid metadata yet be **retracted** — citing it is a hard error, not a pass. When the PubMed record's publication type includes "Retracted Publication" / a retraction notice (or a Retraction Watch / publisher retraction banner surfaces on the DOI page), do NOT silently pass it. Flag inline: `[RETRACTED — <topic>; verify before citing]` and surface to the user. Resolution alone is necessary but not sufficient.
+**RETRACTION / ERRATUM CHECK. Screen by LINKAGE, never by publication type:**
+- A citation can resolve with perfectly valid metadata yet be **retracted or corrected**. Citing it is a hard error, not a pass; resolution alone is necessary but not sufficient.
+- **Screen by parsing the record's `CommentsCorrections` for `RefType=RetractionIn`, `ErratumIn`, `ExpressionOfConcernIn`.** Do NOT screen by publication type. Publication type asks only whether the CITED record is *itself* a retraction or erratum notice, which is almost never what you are checking, so it returns zero on records that carry corrections. Measured 2026-09-01: a publication-type screen reported **0 errata** across a corpus where linkage screening found **11 errata on 10 records**, 8 of them previously unmarked, one of which had the FACTT trial's fluid arms reversed.
+- A publisher/Retraction Watch banner on the DOI page is a supplementary signal, never the primary screen.
+- Flag inline: `[RETRACTED — <topic>; verify before citing]` or `[ERRATUM — <what changed>; verify before citing]`, and surface to the user.
+
+**IDENTIFIER EXTRACTION. Use `[0-9]{5,9}` for PMIDs:**
+- PMIDs are **not** all 7–8 digits. A narrower pattern (`[0-9]{7,8}`) drops shorter identifiers *silently* rather than failing, so the audit covers an incomplete set while reporting a complete-looking number. Measured 2026-09-01: a reported `184/184` became `328/328` on the same corpus once the pattern was widened.
+- This is the collection-method trap in general form: **state the extraction pattern and the screen used alongside the result**, so the denominator can be audited. A bare `N/N verified` hides both how N was gathered and what the gathering could not see.
 
 ### Metadata That Must Match
 
@@ -278,8 +285,7 @@ Failed:   [Z] (not found)
   go to `fabrication-audit`.
 - **interesting-articles-formatting**: Verify every article title and journal name
   before formatting into the digest
-- **writing-anti-ai**: Vague attributions ("Experts believe...") flagged by anti-AI
-  skill should be replaced with verified specific citations
+- **writing-anti-ai**: Vague attributions ("Experts believe...") flagged by anti-AI skill should be replaced with verified specific citations  <!-- anti-ai-ignore: quotes the pattern it teaches; see GRAPH-DOCTRINE V15 -->
 
 ## What This Skill Does NOT Do
 
@@ -295,10 +301,12 @@ Failed:   [Z] (not found)
 Found a missed edge case, a wrong-shaped output, or a rule that misfires?
 Open an issue on this plugin's repository with the input and the output you
 expected. Do not edit this skill mid-run.
+Per-run case facts stay in this skill's own case log / memory store; only
+*skill-file changes* go to the observation log.
 
 ## Versions
 
-- 2026-08-29 — Added the `## Self-improvement` section.
+- 2026-08-29 — Added the lint-enforced `## Self-improvement` contract block (capture via `skill-observation-add.sh`); no behavioral change.
 - **2026-06-04** — Best-practices pass (Anthropic "how we use skills"): added
   `lastReviewed`; added Versions section; added clinical-citation-audit composition cross-
   ref. No trigger phrases, no verification workflow, and no output contract changed. The
