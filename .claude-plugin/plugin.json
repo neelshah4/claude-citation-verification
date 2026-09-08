@@ -1,6 +1,6 @@
 {
   "name": "citation-verification",
-  "version": "2026.9.3",
+  "version": "2026.9.8",
   "description": "Verifies every PMID, DOI, PMC, arXiv, and NCT identifier against PubMed, Crossref, OpenAlex, and Semantic Scholar. Replaces anything unverifiable with [CITATION NEEDED].",
   "author": {
     "name": "Neel Shah, MD, MSc"

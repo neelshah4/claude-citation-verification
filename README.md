@@ -167,7 +167,7 @@ It works without this, just with tighter limits.
 **The deterministic workflow.** `extras/citation-audit.js` runs the audit as a scripted workflow with a self-improvement introspection step. Claude Code does not load `workflows/` from a plugin, so copy it manually:
 
 ```bash
-cp extras/citation-audit.js ~/.claude/workflows/
+cp extras/citation-audit.js <your Claude Code workflows directory>/
 export CITATION_AUDIT_LOG_DIR=~/citation-logs/
 ```
 

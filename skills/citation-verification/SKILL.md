@@ -1,136 +1,94 @@
 ---
 name: citation-verification
 description: Verify every academic citation and reference in real time. Triggers whenever Claude cites a paper, recommends a reference, quotes evidence, or produces output containing author-year citations, DOIs, PMIDs, or journal references — manuscripts, grants, abstracts, literature reviews, clinical consults with cited evidence, rebuttal letters, teaching materials, any response where a specific study is named. Scope is academic citations ONLY — for non-academic verifiable specifics (jurisdictions, fees, addresses, free-standing drug doses, distances, prices, sports/finance specifics), fabrication-audit handles those. The two skills compose. Runs as silent verification pass — no separate output unless verification fails or user requests audit. Never fabricate a citation. If unverifiable, mark [CITATION NEEDED]. Err heavily on triggering — any time a paper is mentioned by name, this skill should be active.
-lastReviewed: 2026-06-04
+lastReviewed: 2026-09-08
 ---
-
 # Citation Verification
 
-Verify every academic reference in real time. Never let a fabricated, misattributed, or metadata-wrong
-citation reach the user.
+Never let a fabricated, misattributed, or metadata-wrong citation reach the user.
 
-## Scope (added clarification)
+## Scope
 
-This skill covers **academic citations only**:
-- PMIDs, DOIs, paper titles, author names, journal references
-- Author-year citations in manuscripts, grants, abstracts, literature reviews
-- Specific studies cited as evidence in clinical consults
-- Bibliographies and reference lists
+Covers **academic citations only**: PMIDs, DOIs, PMC IDs, arXiv IDs, NCT numbers, paper titles, author
+names, journal references, author-year citations, and bibliographies.
 
-This skill does **NOT** cover non-academic verifiable specifics. The `fabrication-audit` skill handles:
-- Jurisdictions (which office/court/agency covers a place)
-- Government fees, processing times, form versions
-- Addresses, hours, drive times, distances
-- Drug doses (when not tied to a specific cited paper)
-- Sports specifics (cap hits, salaries, stats)
-- Finance specifics (ETF expense ratios, prices, yields)
-- Current officeholders, policy effective dates
-
-The two skills compose. If a response contains both academic citations and operational specifics,
-both skills run their respective audits. Neither replaces the other.
-
-## Philosophy
-
-AI-generated citations have a high error rate — wrong authors, wrong years, non-existent
-papers, misattributed claims. This skill exists to ensure that every citation Claude produces
-is verified against a real source before it appears in output. The cost of a single fabricated
-reference in a submitted manuscript or grant is career-damaging. Verification is non-negotiable.
-
-**CRITICAL LESSON (April 2026 incident):** PMIDs are the HIGHEST-RISK field for hallucination.
-In a real manuscript workflow, 4 out of 12 PMIDs were fabricated — each was a plausible-looking
-number that resolved to a completely unrelated paper (ophthalmology, rheumatology, veterinary
-medicine, psychiatry). The citation text (authors, title, journal, year) was correct in all
-cases, but the PMIDs were invented. A validation subagent then confabulated a report claiming
-"all references verified" without actually querying PubMed. Both failures are addressed below.
+Does **NOT** cover non-academic verifiable specifics (jurisdictions, fees, addresses, drug doses not tied
+to a cited paper, sports/finance specifics, officeholders, policy dates) — `fabrication-audit` handles
+those; see Integration below.
 
 ## When to Trigger
 
-**DEFAULT: ON for any output containing references.** This is a background verification
-layer, not a standalone task.
+**DEFAULT: ON for any output containing references.** This is a background verification layer, not a
+standalone task.
 
-### Always active for:
-- Manuscripts, abstracts, grant narratives, specific aims pages
-- Literature reviews, digests, article summaries
-- Clinical consults where specific studies are cited as evidence
-- Rebuttal letters referencing published work
-- Teaching materials, board review content citing sources
-- Emails or memos that reference specific papers
-- Any response where a study is named (author, year, journal, or title)
+Always active for: manuscripts, abstracts, grant narratives, aims pages; literature reviews, digests,
+article summaries; clinical consults citing specific studies as evidence; rebuttal letters; teaching or
+board-review content citing sources; emails/memos referencing specific papers; any response naming a study
+(author, year, journal, or title).
 
-### Skip for:
-- General physiology explanations without specific study citations
-- Casual conversation
-- Code, data analysis, or technical tasks with no references
-- When user explicitly says "don't worry about verifying references"
-- **Non-academic specifics** (those go to `fabrication-audit`)
+Skip for: general physiology explanations with no specific study cited; casual conversation; code/data
+tasks with no references; user says "don't worry about verifying references"; non-academic specifics
+(route to `fabrication-audit`).
 
-### Also trigger on explicit requests:
-- "Verify these references," "check my citations," "audit my bibliography"
-- "Are these real papers?" "Did I cite this correctly?"
+Also trigger on explicit requests: "verify these references," "check my citations," "audit my
+bibliography," "are these real papers?," "did I cite this correctly?"
 
 ## Core Principle
 
-**Never generate a citation from memory alone.** Every reference must be verified through
-search before inclusion. If verification fails, mark `[CITATION NEEDED]` and tell the user.
+Never generate a citation from memory alone; every reference is verified through search before inclusion.
+Failure after the attempt limits below → `[CITATION NEEDED]`, told to the user.
 
 ## Verification Workflow
 
 ### During Writing (Inline Verification)
 
-When Claude needs to cite a paper during any writing task:
+1. SEARCH → PubMed MCP (title + first author); non-PubMed-indexed work falls back to OpenAlex / Semantic
+   Scholar, then web search.
+2. CONFIRM → the paper exists and metadata matches.
+3. PMID/DOI → look up via `get_article_metadata`, never from memory.
+4. CHECK → the cited claim actually appears in that paper.
+5. FORMAT/CITE → use the verified metadata (author, year, journal, PMID/DOI) in the output.
 
-```
-1. SEARCH   → PubMed MCP for the paper (title + first author); for non-PubMed-indexed work fall back to OpenAlex / Semantic Scholar, then generic web search
-2. CONFIRM  → Verify the paper exists and metadata matches
-3. PMID/DOI → Look up PMID via get_article_metadata — NEVER generate from memory
-4. CHECK    → Confirm the claim being cited actually appears in that paper
-5. FORMAT   → Use verified metadata for the citation
-6. CITE     → Include in output with correct author, year, journal, PMID/DOI
-```
+This loop runs for every citation.
 
-This loop runs for EVERY citation, every time. No exceptions.
+### PMID Verification
 
-### PMID and DOI Verification (MANDATORY — added after April 2026 incident)
+PMIDs are the highest-risk hallucination field: other fields can be correct while the PMID resolves to an
+unrelated paper (`references/history.md`). Required workflow for every PMID:
 
-**PMIDs MUST be verified by tool call.** This is the single highest-risk failure mode in
-AI-generated references. The pattern is: title, authors, journal, and year are all correct
-(retrieved from training data), but the PMID is a hallucinated number that resolves to a
-completely unrelated paper.
+1. Search PubMed MCP by title + first author.
+2. Extract the PMID from the result, not from memory.
+3. Call `get_article_metadata` with that PMID to confirm the returned title/authors match.
+4. A different returned paper means the PMID is wrong; search by title instead.
+5. No PMID confirmed after 2 attempts → omit it and use the DOI only, or mark `[PMID NEEDED]`.
 
-**REQUIRED WORKFLOW for every PMID:**
-1. Search PubMed MCP by title + first author to find the paper
-2. Extract the PMID from the search result (NOT from memory)
-3. Call `get_article_metadata` with that PMID to confirm the returned title/authors match
-4. If the MCP returns a different paper → the PMID is wrong → search by title instead
-5. If no PMID can be confirmed after 2 attempts → omit PMID and include DOI only, or mark `[PMID NEEDED]`
+Never generate a PMID from memory, and never claim one is "verified" without the tool call.
 
-**NEVER DO:**
-- Generate a PMID from memory or training data — they are almost always wrong
-- Claim you "verified" a PMID without an actual `get_article_metadata` tool call
-- Trust a subagent's verification report unless it includes tool call evidence (see Multi-Agent section)
-- Assume a plausible-looking 8-digit number is correct because the rest of the citation is right
+### DOIs
 
-**FOR DOIs:**
-- If a DOI is included, verify it resolves to the correct paper via web search or PubMed
-- DOIs are slightly more reliable than PMIDs but still warrant verification for new/recent papers
+Verify a DOI resolves to the correct paper via web search or PubMed; more reliable than PMIDs but still
+warrants a check for new or recent papers.
 
-**FOR arXiv IDs:**
-- Verify by fetching the canonical resolver `https://arxiv.org/abs/<id>` (must return 200) and confirm title + first author match the citation. A 404 → the ID is wrong → search by title (OpenAlex/Semantic Scholar) and correct or mark `[CITATION NEEDED]`.
-- If the preprint was later published, prefer the published DOI/PMID but keep the arXiv ID only if it resolves.
+### arXiv IDs
 
-**RETRACTION / ERRATUM CHECK. Screen by LINKAGE, never by publication type:**
-- A citation can resolve with perfectly valid metadata yet be **retracted or corrected**. Citing it is a hard error, not a pass; resolution alone is necessary but not sufficient.
-- **Screen by parsing the record's `CommentsCorrections` for `RefType=RetractionIn`, `ErratumIn`, `ExpressionOfConcernIn`.** Do NOT screen by publication type. Publication type asks only whether the CITED record is *itself* a retraction or erratum notice, which is almost never what you are checking, so it returns zero on records that carry corrections. Measured 2026-09-01: a publication-type screen reported **0 errata** across a corpus where linkage screening found **11 errata on 10 records**, 8 of them previously unmarked, one of which had the FACTT trial's fluid arms reversed.
-- A publisher/Retraction Watch banner on the DOI page is a supplementary signal, never the primary screen.
-- Flag inline: `[RETRACTED — <topic>; verify before citing]` or `[ERRATUM — <what changed>; verify before citing]`, and surface to the user.
+Fetch `https://arxiv.org/abs/<id>` (must return 200) and confirm title + first author match. A 404 means
+the ID is wrong: search by title (OpenAlex/Semantic Scholar) and correct it, or mark `[CITATION NEEDED]`.
+If later published, prefer the published DOI/PMID and keep the arXiv ID only if it still resolves.
 
-**IDENTIFIER EXTRACTION. Use `[0-9]{5,9}` for PMIDs:**
-- PMIDs are **not** all 7–8 digits. A narrower pattern (`[0-9]{7,8}`) drops shorter identifiers *silently* rather than failing, so the audit covers an incomplete set while reporting a complete-looking number. Measured 2026-09-01: a reported `184/184` became `328/328` on the same corpus once the pattern was widened.
-- This is the collection-method trap in general form: **state the extraction pattern and the screen used alongside the result**, so the denominator can be audited. A bare `N/N verified` hides both how N was gathered and what the gathering could not see.
+### Retraction / Erratum Check
+
+A citation can resolve with valid metadata yet be retracted or corrected; citing it is a hard error. Screen
+by parsing `CommentsCorrections` for `RefType=RetractionIn`, `ErratumIn`, or `ExpressionOfConcernIn`, not by
+publication type (misses corrections on an otherwise-normal record, `references/history.md`). A publisher
+or Retraction Watch banner is supplementary, never primary. Flag inline:
+`[RETRACTED — <topic>; verify before citing]` or `[ERRATUM — <what changed>; verify before citing]`.
+
+### Identifier Extraction
+
+Use `[0-9]{5,9}` for PMIDs, not `[0-9]{7,8}`, which silently drops shorter IDs (`references/history.md`).
+State the extraction pattern alongside any verification count so the denominator can be audited.
 
 ### Metadata That Must Match
-
-For a citation to pass verification, these must be confirmed:
 
 | Field | Tolerance |
 |-------|-----------|
@@ -138,118 +96,64 @@ For a citation to pass verification, these must be confirmed:
 | **First author** | Must match exactly |
 | **Year** | ±1 year allowed (preprint → publication lag) |
 | **Journal/Conference** | Must match (abbreviated or full name both acceptable) |
-| **PMID** | MUST be verified via PubMed MCP tool call — NEVER from memory |
+| **PMID** | Verified via PubMed MCP tool call, never from memory |
 | **DOI** | If provided, must resolve to the correct paper |
-| **Non-PubMed source (OpenAlex / Semantic Scholar)** | Used only for non-PubMed-indexed refs; confirms existence + metadata (title + first author + year). DOI/PMID lookups are exact; title-search hits require first-author+year match — do not accept a top-hit on title alone. |
+| **Non-PubMed source (OpenAlex / Semantic Scholar)** | Non-indexed refs only; DOI/PMID lookups are exact, a title-search hit needs first-author+year match |
 
 ### Claim Verification
 
-When citing a paper for a specific claim (e.g., "mortality was 30%"), the claim
-must be traceable to that paper. Steps:
-
-1. Search for the paper's abstract or full text
-2. Confirm the specific finding appears
-3. If the claim is a secondary finding or subgroup result, note this context
-4. If the claim cannot be confirmed from available text, write: "Author et al.
-   reported [claim] (exact finding not confirmed from abstract; verify in full text)"
+When citing a paper for a specific claim (e.g., "mortality was 30%"): search the abstract or full text,
+confirm the finding appears, note if it is a secondary/subgroup result, and if unconfirmable write "Author
+et al. reported [claim] (exact finding not confirmed from abstract; verify in full text)."
 
 ## Verification by Context
 
-### Manuscripts and Grants
-- Every reference in the bibliography must be verifiable
-- Run verification during drafting, not as a post-hoc step
-- Flag any reference that fails verification with `[CITATION NEEDED]`
-- For literature review sections: verify at least title + first author + year + journal
-  for every cited paper
-- **Every PMID must be confirmed via PubMed MCP before the document is delivered**
-
-### Clinical Consults
-- When citing evidence to support a clinical recommendation, verify the paper exists
-  and the finding is accurately represented
-- Acceptable shorthand: "A 2023 PCCM study by Shah et al." — but author, year, and
-  journal must be confirmed
-- For well-known landmark trials (ARDSNet, PROSEVA, TTM2, etc.), verify the citation
-  is attributed to the correct trial and correct outcome
-- **Drug doses cited within a clinical consult**: if tied to a cited paper, this skill
-  verifies the citation; if free-standing, `fabrication-audit` handles dose verification
-
-### Literature Digests and Summaries
-- Every article link and title must be confirmed via search
-- Titles must match the actual publication exactly (check capitalization, subtitles)
-- Journal abbreviations must follow Medline style
-
-### Rebuttal Letters
-- When citing new references in a rebuttal, apply full verification
-- When re-citing papers already in the manuscript, confirm they are in the bibliography
-  and the cited finding is correct
+- **Manuscripts/grants**: verify every bibliography reference during drafting, not post-hoc; flag failures
+  with `[CITATION NEEDED]`; literature review sections need at least title + first author + year + journal.
+- **Clinical consults**: verify the paper and finding; landmark trials (ARDSNet, PROSEVA, TTM2) must be
+  attributed to the correct trial and outcome; a dose tied to a cited paper is verified here, free-standing
+  goes to `fabrication-audit`.
+- **Literature digests**: confirm every link and title exactly (capitalization, subtitles); Medline-style
+  journal abbreviations.
+- **Rebuttal letters**: full verification for new references; re-cited papers must be confirmed in the
+  bibliography with the finding intact.
 
 ## Handling Verification Failures
 
-### Paper not found
-1. Try alternate search queries (different keyword combinations, DOI if available)
-2. Try PubMed MCP first; then, for non-PubMed-indexed work (CS / AI / informatics / engineering / preprint), **OpenAlex** (`https://api.openalex.org/works/doi:<doi>` exact, or `?filter=title.search:<title>&mailto=your-email@example.com`) and **Semantic Scholar** (`https://api.semanticscholar.org/graph/v1/paper/DOI:<doi>?fields=title,year,authors,externalIds` — `externalIds.PubMed` can recover a missing PMID; DOI endpoint is the reliable S2 path, search endpoint is rate-limited, retry once); then web search / Google Scholar. On any **title-search** hit, confirm first author + year before accepting — relevance ranking can surface a same-title decoy (observed: a 2017 paper's title returned a 2025 work as top hit). These fallbacks widen recall best-effort, not guaranteed; non-resolution still falls through to `[CITATION NEEDED]`.
-3. If still not found after 2-3 search attempts: mark `[CITATION NEEDED]` and notify user
-4. Never guess or approximate — if it can't be found, it doesn't get cited
+**Paper not found**: try alternate search queries, then the step-1 fallback order (PubMed MCP → OpenAlex →
+Semantic Scholar → web search); confirm first author + year on any title-search hit, since relevance
+ranking can surface a same-title decoy; still not found after 2-3 attempts → `[CITATION NEEDED]`.
 
-### PMID not found or mismatched
-1. Search PubMed by title + first author
-2. If the paper is found but under a different PMID → use the correct PMID from search results
-3. If the paper is found but has no PMID (e.g., preprint, non-indexed journal) → omit PMID, use DOI
-4. If the PMID resolves to a different paper → the PMID is WRONG — discard it entirely
-5. NEVER keep a PMID that resolves to the wrong paper
+**PMID not found or mismatched**: use the correct PMID if found under a different one; omit and use the DOI
+if the paper has none; discard entirely if it resolves to a different paper.
 
-### Metadata mismatch
-1. Confirm you found the correct paper (not a similarly titled one)
-2. Check for preprint vs. published version discrepancies
-3. Use the most current/accurate version's metadata
-4. Note discrepancies to user if significant (e.g., different author order)
+**Metadata mismatch**: confirm the correct paper, not a similarly titled one; check preprint-vs-published
+discrepancies; use the most current metadata; note significant discrepancies (e.g., author order).
 
-### Claim not confirmed
-1. Check if the claim appears in the abstract
-2. If not in abstract, note: "Finding cited from [Author et al., Year]; not confirmed
-   from abstract — verify against full text"
-3. Never fabricate page numbers or section references
+**Claim not confirmed**: if absent from the abstract, note "not confirmed from abstract — verify against
+full text"; never fabricate page numbers or section references.
 
-## Execution mode — dispatch the verifier agent (preferred) vs. inline (fallback)
+## Execution Mode: Dispatch vs. Inline
 
-**If the `Agent`/`Task` tool is available, dispatch the `citation-verifier` subagent** (in `this plugin's `agents/` directory` for Claude Code, `.claude/agents/` for Cowork) to run the verification workflow in its own context, and require it to return the actual tool-call evidence for every VERIFIED identifier. The parent then spot-checks ≥30% of returned PMIDs by an independent `get_article_metadata` call (per the guardrails below); if any spot-check fails, re-verify all. **If the tool is unavailable, run the verification workflow inline** in this context, unchanged. Either way the workflow above is authoritative; the agent is built directly from it.
+If the `Agent`/`Task` tool is available, dispatch the `citation-verifier` subagent (`this plugin's `agents/` directory` for
+Claude Code, `.claude/agents/` for Cowork), requiring tool-call evidence for every VERIFIED identifier and
+spot-checking at least 30% independently (see Multi-Agent guardrails below). If the tool is unavailable, run the workflow
+inline, unchanged.
 
-## Multi-Agent Citation Workflows (MANDATORY — added after April 2026 incident)
+## Multi-Agent Citation Workflows
 
-When citation tasks are delegated to subagents (research agents, validation agents, etc.):
+Subagents can confabulate verification reports: a claim of "all 12 references verified" with no tool-call
+evidence has verified nothing (`references/history.md`). Guardrails: (1) any subagent verifying citations
+must include its actual PubMed MCP calls (queries, `get_article_metadata` results) — a narrative-only
+report is not verification; (2) the parent spot-checks at least 30% of PMIDs directly, and re-verifies all
+on any failure; (3) no transitive trust — never accept a subagent's claim that it "searched PubMed" without
+independent verification; (4) before delivery, the delivering agent must hold direct tool-call evidence for
+every PMID in the document.
 
-### The Confabulation Problem
-Subagents can and do confabulate verification reports. A subagent that claims "all 12
-references verified" without tool call evidence has verified nothing. This is the exact
-failure mode that produced 4 wrong PMIDs in a real manuscript.
+The dispatch-prompt template for verification subagents (restates guardrail 1) is in
+`references/history.md`.
 
-### Required Guardrails
-1. **Tool call evidence required:** Any subagent performing citation verification MUST
-   include in its output the actual PubMed MCP tool calls it made (search queries,
-   `get_article_metadata` calls, returned PMIDs). A narrative-only report is NOT verification.
-2. **Parent agent spot-check:** After receiving a subagent's verification report, the parent
-   agent MUST re-verify at least 30% of PMIDs by calling `get_article_metadata` directly.
-   If ANY PMID fails spot-check, re-verify ALL PMIDs before delivering to user.
-3. **No transitive trust:** Do not trust a subagent's claim that it "searched PubMed" or
-   "confirmed via MCP." Verify independently. The subagent may have confabulated the entire
-   search process.
-4. **Final gate:** Before any document with PMIDs is delivered to the user, the delivering
-   agent must have direct tool-call evidence for every PMID in the document. No exceptions.
-
-### Prompt Template for Verification Subagents
-When spawning a citation verification subagent, include this instruction:
-```
-For EVERY PMID you include, you MUST:
-1. Call get_article_metadata with that PMID
-2. Confirm the returned title matches the intended paper
-3. Include the tool call result in your output
-If you cannot call the PubMed MCP, mark every PMID as [PMID UNVERIFIED].
-Do NOT generate PMIDs from memory under any circumstances.
-```
-
-## Output Format (When Verification Audit Is Requested)
-
-If the user explicitly asks to verify or audit citations, produce:
+## Output Format (Audit Requested)
 
 ```
 CITATION VERIFICATION REPORT
@@ -262,52 +166,33 @@ Failed:   [Z] (not found)
 |---|----------|--------|---------------|----------------|
 | 1 | Shah et al., PCCM 2024 | ✓ Verified | ✓ via MCP | — |
 | 2 | Jones et al., CCM 2023 | ⚠ Flagged | ✗ Wrong paper | PMID resolves to unrelated article |
-| 3 | Smith et al., JAMA 2025 | ✗ Not found | — | No matching paper after 3 searches |
 ```
 
 ## Integration with Other Skills
 
-- **fabrication-audit**: handles non-academic verifiable specifics (fees, jurisdictions,
-  addresses, doses-not-tied-to-citation, sports/finance specifics). The two skills compose;
-  scopes don't overlap.
-- **clinical-citation-audit**: the pre+post-flight GATE that wraps this skill for the six
-  clinical-writing skills (manuscript-reviewer, scientific-writing, literature-review,
-  clinical-reports, clinical-evidence-debate, clinical-teaching-deck). That skill enforces; this skill provides the
-  verification methodology it runs. When invoked from the clinical pipeline, defer block
-  formatting to clinical-citation-audit's audit summary.
-- **manuscript-reviewer**: When Agent 6 (Tables/Figures) or Agent 5 (Literature) flags
-  citation concerns, this skill provides the verification methodology
-- **review-response**: When new references are added during revision, verify each one
-- **literature-review**: Every paper included in a systematic or narrative review must
-  pass verification
-- **icu-clinical-consult**: When citing evidence for clinical recommendations, verify
-  the cited study exists and the finding is accurate. Free-standing doses (no paper cited)
-  go to `fabrication-audit`.
-- **interesting-articles-formatting**: Verify every article title and journal name
-  before formatting into the digest
-- **writing-anti-ai**: Vague attributions ("Experts believe...") flagged by anti-AI skill should be replaced with verified specific citations  <!-- anti-ai-ignore: quotes the pattern it teaches; see GRAPH-DOCTRINE V15 -->
+- **fabrication-audit**: owns non-academic verifiable specifics (scope split above); the two skills compose
+  without overlap.
+- **clinical-citation-audit**: the pre+post-flight gate wrapping this skill for the six clinical-writing
+  skills (manuscript-reviewer, scientific-writing, literature-review, clinical-reports,
+  clinical-evidence-debate, clinical-teaching-deck); that skill enforces, this skill supplies the
+  methodology, and defers block formatting to its audit summary when invoked from the pipeline.
+- **manuscript-reviewer**, **review-response**, **literature-review**, **icu-clinical-consult**,
+  **interesting-articles-formatting**: each hands its citation-bearing content through this skill's
+  workflow (icu-clinical-consult routes free-standing doses to `fabrication-audit` instead).
+- **writing-anti-ai**: vague attributions it flags ("Experts believe...") should be replaced with verified
+  specific citations.
 
 ## What This Skill Does NOT Do
 
-- It does not require the user to request verification — it is always on
-- It does not fabricate "verification" of papers it cannot actually confirm
-- It does not override the user's citation choices — it flags problems, user decides
-- It does not verify references the user provides verbatim (assumes user has the paper) —
-  but will flag obvious metadata errors if noticed
-- It does NOT trust subagent verification reports at face value — see Multi-Agent section
-- **It does NOT cover non-academic verifiable specifics** — those go to `fabrication-audit`
+- It does not override the user's citation choices; it flags problems and the user decides.
+- It does not verify references the user provides verbatim, though it flags obvious metadata errors if
+  noticed.
 
-## Self-improvement
+## Feedback loop
 Found a missed edge case, a wrong-shaped output, or a rule that misfires?
 Open an issue on this plugin's repository with the input and the output you
 expected. Do not edit this skill mid-run.
-Per-run case facts stay in this skill's own case log / memory store; only
-*skill-file changes* go to the observation log.
 
 ## Versions
 
-- 2026-08-29 — Added the lint-enforced `## Self-improvement` contract block (capture via `skill-observation-add.sh`); no behavioral change.
-- **2026-06-04** — Best-practices pass (Anthropic "how we use skills"): added
-  `lastReviewed`; added Versions section; added clinical-citation-audit composition cross-
-  ref. No trigger phrases, no verification workflow, and no output contract changed. The
-  April 2026 PMID-incident content is unchanged.
+See `references/history.md` for version history and the incidents behind each rule.

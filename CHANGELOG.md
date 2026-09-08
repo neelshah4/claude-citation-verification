@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
 string rather than imposing a semantic version it does not have.
 
+## [2026.9.8] - 2026-09-08
+
+### Changed
+- `citation-verification/SKILL.md` body trimmed from 2,903 to 1,533 words: version notes, the dated PMID/retraction incident narrative, and worked examples moved to a new `skills/citation-verification/references/history.md`, with a one-line pointer left in SKILL.md. No trigger phrase, verification workflow, or output-contract behavior changed.
+- Bundled `fabrication-audit` updated to its own 2026.9.8 release (see that plugin's changelog): SKILL.md trimmed from 3,257 to 1,744 words, with a new `skills/fabrication-audit/references/history.md` carrying the origin incidents, anti-pattern table, and case log.
+- The feedback-loop section in both bundled skills has its body rewritten as a generic issue-driven prompt with no internal script or path names.
+- Every internal user-machine path reference removed from SKILL.md, references, and README; the README's local-install command now points at a generic workflows directory rather than a literal path.
+
 ## [2026.8.29] - 2026-08-31
 
 ### Changed
