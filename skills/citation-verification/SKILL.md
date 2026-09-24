@@ -1,7 +1,7 @@
 ---
 name: citation-verification
 description: Verify every academic citation and reference in real time. Triggers whenever Claude cites a paper, recommends a reference, quotes evidence, or produces output containing author-year citations, DOIs, PMIDs, or journal references — manuscripts, grants, abstracts, literature reviews, clinical consults with cited evidence, rebuttal letters, teaching materials, any response where a specific study is named. Scope is academic citations ONLY — for non-academic verifiable specifics (jurisdictions, fees, addresses, free-standing drug doses, distances, prices, sports/finance specifics), fabrication-audit handles those. The two skills compose. Runs as silent verification pass — no separate output unless verification fails or user requests audit. Never fabricate a citation. If unverifiable, mark [CITATION NEEDED]. Err heavily on triggering — any time a paper is mentioned by name, this skill should be active.
-lastReviewed: 2026-09-08
+lastReviewed: 2026-09-24
 ---
 # Citation Verification
 
@@ -187,6 +187,9 @@ Failed:   [Z] (not found)
 - It does not override the user's citation choices; it flags problems and the user decides.
 - It does not verify references the user provides verbatim, though it flags obvious metadata errors if
   noticed.
+
+## Web fallback
+WebFetch and WebSearch stay first. If the Parallel Search MCP is installed (`claude mcp add --transport http parallel-search https://search.parallel.ai/mcp`) and WebFetch returns a 4xx/5xx, a paywall or bot wall, a redirect it cannot follow, or a page missing the target content, retry once with `mcp__parallel-search__web_fetch` (same URL, a narrow `objective`); if WebSearch returns nothing usable, retry with `mcp__parallel-search__web_search`. Parallel returns query-matched excerpts, not the full page, so a value missing from the excerpt is unverified, not absent. Never put PHI, unpublished manuscript or grant text, or credentials in a Parallel query, and never use it to get past a login or CAPTCHA gate. Name the tool that verified each item.
 
 ## Feedback loop
 Found a missed edge case, a wrong-shaped output, or a rule that misfires?

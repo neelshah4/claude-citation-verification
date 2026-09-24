@@ -2,7 +2,7 @@
 name: fabrication-audit
 description: >-
   Silent post-draft verification pass catching unverified specifics before they leave the response. Triggers on ANY substantive output containing factual claims about the world: numbers, dates, addresses, jurisdictions (which office/agency covers a place), distances, drive times, government fees, processing times, version numbers, current officeholders, drug doses, prices, statistics, sports stats/cap hits, ETF/stock specifics, salaries, antimicrobial susceptibility/resistance rates — any "the X is Y" / "X serves Y" pattern where Y is a specific retrievable value. Embedded sub-claims in longer responses get same treatment as direct questions. Triggers on nearly every substantive turn except greetings, pure code, pure math derivations, fictional creative writing. Does NOT trigger on academic citations (PMIDs/DOIs/journal refs) — citation-verification handles those exclusively. Runs silently, fixes draft before sending. Err very heavily on triggering. When in doubt: TRIGGER.
-lastReviewed: 2026-09-08
+lastReviewed: 2026-09-24
 ---
 # Fabrication audit — silent verification pass
 
@@ -131,6 +131,9 @@ Same rationale as citation-verification's guardrails: the confabulation pattern 
 - **clinical-data-scientist** — this skill audits quantitative claims about external benchmarks; internal analyses derived from user-supplied data don't need it.
 
 This skill is canonical and bundled inside `icu-clinical-consult`, `citation-verification`, and `grant-review`; sync any edit here to those three copies.
+
+## Web fallback
+WebFetch and WebSearch stay first. If the Parallel Search MCP is installed (`claude mcp add --transport http parallel-search https://search.parallel.ai/mcp`) and WebFetch returns a 4xx/5xx, a paywall or bot wall, a redirect it cannot follow, or a page missing the target content, retry once with `mcp__parallel-search__web_fetch` (same URL, a narrow `objective`); if WebSearch returns nothing usable, retry with `mcp__parallel-search__web_search`. Parallel returns query-matched excerpts, not the full page, so a value missing from the excerpt is unverified, not absent. Never put PHI, unpublished manuscript or grant text, or credentials in a Parallel query, and never use it to get past a login or CAPTCHA gate. Name the tool that verified each item.
 
 ## Feedback loop
 Found a missed edge case, a wrong-shaped output, or a rule that misfires?

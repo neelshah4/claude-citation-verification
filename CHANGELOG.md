@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
 string rather than imposing a semantic version it does not have.
 
+## [2026.9.24] - 2026-09-24
+
+### Added
+- Optional web fallback: when WebFetch or WebSearch is blocked (4xx/5xx, paywall, bot wall, unfollowable redirect, or content missing the target), retry once with the Parallel Search MCP if it is installed. Parallel excerpts are partial, so a value missing from one is unverified. No PHI, unpublished text, or credentials in a query; never used to pass a login or CAPTCHA gate.
+- `citation-verifier` and `fabrication-auditor` agents granted the two Parallel tools, with the same fallback section. Bundled fabrication-audit synced to v2026.9.24.
+
 ## [2026.9.8] - 2026-09-08
 
 ### Changed
