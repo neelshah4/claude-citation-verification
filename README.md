@@ -1,6 +1,6 @@
 # citation-verification
 
-Checks that every citation identifier in a document actually exists, and replaces the ones that do not with `[CITATION NEEDED]`.
+Checks that every citation identifier in a document actually exists, and replaces the ones that do not with `[CITATION NEEDED]`. A Python script fetches the registry records and assigns each status; the model reviews only what the script cannot decide.
 
 ---
 
@@ -9,11 +9,15 @@ Checks that every citation identifier in a document actually exists, and replace
 - [The problem](#the-problem)
 - [What it verifies](#what-it-verifies)
 - [The lookup chain](#the-lookup-chain)
+- [The verifier script and its statuses](#the-verifier-script-and-its-statuses)
+- [Claim support](#claim-support)
 - [Install](#install)
 - [Worked examples](#worked-examples)
 - [The match criteria](#the-match-criteria)
 - [Multi-agent workflows](#multi-agent-workflows)
 - [Configuration](#configuration)
+- [Optional Stop hook](#optional-stop-hook)
+- [Running the evals](#running-the-evals)
 - [Troubleshooting](#troubleshooting)
 - [What it does not check](#what-it-does-not-check)
 - [Design notes](#design-notes)
@@ -58,6 +62,41 @@ Tried in order, stopping at the first confident match:
 After two to three failed attempts, the identifier is marked `[CITATION NEEDED]` and you are told. It does not guess, and it does not soften a failure into a hedge like "possibly Smith et al."
 
 **On title searches specifically:** any title-search hit must have first author *and* year confirmed before acceptance. Relevance ranking will happily return a same-title paper from a different year as the top hit. This has been observed in practice — a 2017 paper's title returning a 2025 work first.
+
+---
+
+## The verifier script and its statuses
+
+`skills/citation-verification/scripts/verify_citations.py` extracts every PMID, DOI, PMC, arXiv, and NCT identifier from a text (or reads an ids file), fetches the registry record for each, compares the record with the citing text, and writes the status. Standard library only; Python 3.
+
+```bash
+python3 skills/citation-verification/scripts/verify_citations.py audit --text draft.txt --out audit.json --raw-dir raw/
+python3 skills/citation-verification/scripts/verify_citations.py block --audit audit.json
+python3 skills/citation-verification/scripts/verify_citations.py review --audit audit.json --key PMID:123 --decision confirm --note "title and journal match"
+python3 skills/citation-verification/scripts/verify_citations.py extract --text draft.txt
+```
+
+`audit` exits 0 when no record blocks, 1 when it ran and found blocking records, and 2 on a usage or internal error. `block` prints the fenced `citation-audit` summary. `review` records a reviewer decision on a `NEEDS-REVIEW` record (`confirm`, `reject`, or `superseded`) and is the only writer of `audit.json` besides `audit`. The script keeps a ledger of fetched records (default under `.claude/data/` in your home directory; `--ledger PATH` or `--no-ledger` to change it) and reuses rows younger than 30 days.
+
+| Status | Meaning |
+|---|---|
+| `OK` | Registry record matches the citing text. |
+| `OK-REVIEWED` | A reviewer confirmed a `NEEDS-REVIEW` record. |
+| `CORRECTED` | Matches, and the record carries an erratum. |
+| `NEEDS-REVIEW` | The script cannot decide (bare identifier, close but not exact title, guideline candidates). |
+| `WRONG-ID` | The identifier resolves to a different paper. |
+| `MISMATCH` | The record disagrees with the citing text on author, year, or journal. |
+| `NOT-FOUND` | No registry has the identifier. |
+| `RETRACTED` | The record is linked to a retraction. |
+| `CONCERN` | The record is linked to an expression of concern. |
+| `SUPERSEDED` | A newer edition exists (guidelines). |
+| `UNVERIFIED` | The record could not be checked (transport failure, offline, or unindexed); never reported as `NOT-FOUND`. |
+
+When Python or the script cannot run, the skill falls back to model-read verification and labels the output `verifier: manual`.
+
+## Claim support
+
+A verified identifier does not show that the paper supports the sentence that cites it. For citations that carry a number or a direction of effect, `scripts/claim_packets.py build` assembles the title and abstract into packets, a reviewer who has not seen the manuscript judges each packet by `references/claim-support.md`, and `claim_packets.py check` rejects any verdict whose quoted evidence is not in the packet text. Only `check` decides what blocks.
 
 ---
 
@@ -153,25 +192,47 @@ If you build multi-agent workflows that cite anything, wire this in as the final
 
 ## Configuration
 
-**Set your contact email.** OpenAlex and Semantic Scholar use the polite-pool convention — supplying a contact address gets you better rate limits. Replace `your-email@example.com` in two files:
+**Environment variables.** The scripts read these; none is required.
 
-```bash
-skills/citation-verification/SKILL.md
-agents/citation-verifier.md
-```
+| Variable | Used by | Purpose |
+|---|---|---|
+| `CITATION_AUDIT_MAILTO` | `verify_citations.py`, `claim_packets.py` | Contact address sent to the registries' polite pools (better rate limits). Without it, requests go without an address. |
+| `NCBI_API_KEY` | `verify_citations.py`, `claim_packets.py` | Raises the NCBI limit from 3 to 10 requests per second. |
+| `CITATION_HOOK_MODE` | optional Stop hook | `warn` (default), `block`, or `off`. |
+| `CITATION_AUDIT_LOG_DIR` | `extras/citation-audit.js` | Where the workflow writes run files and introspection notes; default `./logs/citation-audit`. |
+| `CITATION_SCRIPTS_DIR` | `extras/citation-audit.js` | Directory holding `verify_citations.py` and `claim_packets.py`; default is `skills/citation-verification/scripts` under `.claude/skills/` in the home directory. |
 
-It works without this, just with tighter limits.
+The hook's own variables are listed in `hooks/citation-ledger-check.README.md`.
 
 **PubMed MCP.** If connected, it is tried before HTTP fallbacks. Not required.
 
-**The deterministic workflow.** `extras/citation-audit.js` runs the audit as a scripted workflow with a self-improvement introspection step. Claude Code does not load `workflows/` from a plugin, so copy it manually:
+**The workflow.** `extras/citation-audit.js` runs the audit as a scripted workflow: one agent runs `verify_citations.py`, a second agent re-hashes the audit file so the workflow can compare it in code, undecided records go to reviewer shards, and an introspection step writes a note when a run misses its goal. Claude Code does not load `workflows/` from a plugin, so copy it manually and point it at the scripts:
 
 ```bash
 cp extras/citation-audit.js <your Claude Code workflows directory>/
 export CITATION_AUDIT_LOG_DIR=~/citation-logs/
+export CITATION_SCRIPTS_DIR=/absolute/path/to/skills/citation-verification/scripts
 ```
 
-Without the variable it writes to `./logs/citation-audit/`.
+Pass `scriptsDir` or `logRoot` in the workflow arguments to override either variable per run.
+
+---
+
+## Optional Stop hook
+
+`hooks/citation-ledger-check.py` is a Stop hook that reads each final assistant message, extracts PMID, DOI, and NCT identifiers, and checks each against the verifier's ledger. An identifier with no ledger row, a stale row, or a non-passing status is logged and reported. The hook cannot verify a citation; it shows that the verifier ran. The plugin does not register it. To use it, copy the file somewhere stable and add one `Stop` entry to `settings.json`; `hooks/citation-ledger-check.README.md` has the entry, the `CITATION_HOOK_MODE` modes (`warn` by default, `block`, `off`), and the other variables. On a plugin install, set `CITATION_VERIFIER_PATH` to the plugin's `verify_citations.py` so the hook uses the verifier's own extractor; without it the hook uses a built-in regex.
+
+---
+
+## Running the evals
+
+```bash
+python3 skills/citation-verification/evals/grade_claims.py          # claim-support gates, no network
+python3 skills/citation-verification/evals/grade.py --split test    # 63-case verifier bank, needs network
+cd hooks/tests && python3 -m unittest test_citation_ledger_check     # hook, no network
+```
+
+`grade.py` runs the bundled verifier on seeded-defect cases (wrong first author, swapped identifier, retracted paper, erratum, transport failure, and others) and fails on any false `OK`. Registries change, so a case whose live answer has moved is a broken case, not a script failure. `skills/citation-verification/evals/README.md` has the case format and the rules for using failures.
 
 ---
 
@@ -181,7 +242,7 @@ Without the variable it writes to `./logs/citation-audit/`.
 
 **Verification is slow.** It is doing real network lookups, serially where rate limits demand it. A 40-reference manuscript takes a few minutes. Run it once, at the end.
 
-**Rate-limited by Semantic Scholar.** The search endpoint is limited; the DOI endpoint is not. Set your polite-pool email, and prefer DOIs over title searches.
+**Rate-limited by Semantic Scholar.** The search endpoint is limited; the DOI endpoint is not. Set `CITATION_AUDIT_MAILTO`, and prefer DOIs over title searches.
 
 **It verified a paper that does not say what I cited it for.** Expected. See the next section.
 
@@ -193,7 +254,7 @@ Without the variable it writes to `./logs/citation-audit/`.
 
 **Non-citation specifics.** Doses, thresholds, resistance percentages, guideline names, fees, prices. That is [fabrication-audit](https://github.com/neelshah4/claude-fabrication-audit), which ships bundled here and runs alongside. Different lookups, different acceptance rules. The two together cover the claim surface; either alone leaves half of it unchecked.
 
-**Whether the citation supports the claim.** This is the important limitation. A real paper cited for something it does not say will pass every check here. The identifier is verified; the argument is not. Nothing automated substitutes for having read the paper.
+**Whether the citation fully supports the claim.** The claim-support tier checks a number or direction against the title and abstract. It does not read the full text, so a real paper cited for something only its body addresses still needs a human reading.
 
 **Whether the citation is appropriate.** It cannot tell you that you cited a case report where a trial exists, or missed the seminal reference.
 
@@ -218,11 +279,12 @@ Without the variable it writes to `./logs/citation-audit/`.
 ## Requirements
 
 - Web access.
+- Python 3 for the verifier script (without it the skill falls back to model-read verification).
 - Claude Code with the Agent tool for the batched subagent path; without it verification runs inline and is slower.
 
 ## Version
 
-`2026.8.29`, matching the skill's latest declared version date. Calendar versioning, because the skill is date-versioned. See [CHANGELOG.md](CHANGELOG.md).
+`2026.11.16`, matching the skill's latest declared version date. Calendar versioning, because the skill is date-versioned. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

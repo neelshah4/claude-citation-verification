@@ -1,7 +1,7 @@
 ---
 name: citation-verification
 description: Verify every academic citation and reference in real time. Triggers whenever Claude cites a paper, recommends a reference, quotes evidence, or produces output containing author-year citations, DOIs, PMIDs, or journal references — manuscripts, grants, abstracts, literature reviews, clinical consults with cited evidence, rebuttal letters, teaching materials, any response where a specific study is named. Scope is academic citations ONLY — for non-academic verifiable specifics (jurisdictions, fees, addresses, free-standing drug doses, distances, prices, sports/finance specifics), fabrication-audit handles those. The two skills compose. Runs as silent verification pass — no separate output unless verification fails or user requests audit. Never fabricate a citation. If unverifiable, mark [CITATION NEEDED]. Err heavily on triggering — any time a paper is mentioned by name, this skill should be active.
-lastReviewed: 2026-09-24
+lastReviewed: 2026-11-16
 ---
 # Citation Verification
 
@@ -82,6 +82,23 @@ by parsing `CommentsCorrections` for `RefType=RetractionIn`, `ErratumIn`, or `Ex
 publication type (misses corrections on an otherwise-normal record, `references/history.md`). A publisher
 or Retraction Watch banner is supplementary, never primary. Flag inline:
 `[RETRACTED — <topic>; verify before citing]` or `[ERRATUM — <what changed>; verify before citing]`.
+
+The PubMed connector's metadata call (`get_article_metadata`) returns publication types but does not expose
+`CommentsCorrections`, so errata and retractions linked to a record are invisible through it. Read the
+linkage from the raw E-utilities `efetch` XML (`db=pubmed&retmode=xml`), where `ErratumIn`, `RetractionIn`
+and `ExpressionOfConcernIn` appear. Use the connector to find papers, not to clear them.
+
+### Deterministic verifier
+
+Run `python3 "${CLAUDE_SKILL_DIR}/scripts/verify_citations.py" audit --text <file> --out <audit.json>` and take
+statuses from its output; do not assign them by reading pages. Model-read verification is the fallback when
+Python or the script cannot run, and the output must say so (`verifier: manual`). Set `CITATION_AUDIT_MAILTO`
+to a contact address for the registries' polite pools, and optionally `NCBI_API_KEY`.
+
+Shared status vocabulary: `OK`, `OK-REVIEWED`, `CORRECTED`, `NEEDS-REVIEW`, `WRONG-ID`, `MISMATCH`,
+`NOT-FOUND`, `RETRACTED`, `CONCERN`, `SUPERSEDED`, `UNVERIFIED` (definitions in
+`references/verdict-schema.json`). Claim-support checks use `scripts/claim_packets.py` and
+`references/claim-support.md`.
 
 ### Identifier Extraction
 

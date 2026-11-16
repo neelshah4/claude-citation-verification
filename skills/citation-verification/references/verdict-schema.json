@@ -1,0 +1,705 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "citation-audit-verdict-schema-2",
+  "title": "CitationAudit",
+  "description": "Output of verify_citations.py audit (schema_version 2). A script assigns every status; a model never assigns OK. verified = OK + OK-REVIEWED + CORRECTED + SUPERSEDED. audit_pass = no record in a blocking status (NEEDS-REVIEW, WRONG-ID, MISMATCH, NOT-FOUND, RETRACTED, CONCERN, UNVERIFIED) and no duplicate_findings.",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "audit_id",
+    "upstream_skill",
+    "source_sha256",
+    "method",
+    "total",
+    "verified",
+    "counts",
+    "audit_pass",
+    "records",
+    "duplicate_findings",
+    "errors",
+    "needs_review"
+  ],
+  "properties": {
+    "kind": {
+      "const": "CitationAudit"
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "audit_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+    },
+    "upstream_skill": {
+      "type": "string"
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ledger_path": {
+      "type": "string"
+    },
+    "method": {
+      "type": "object",
+      "required": [
+        "patterns",
+        "screens",
+        "sources"
+      ],
+      "properties": {
+        "patterns": {
+          "type": "object"
+        },
+        "screens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "offline": {
+          "type": "boolean"
+        },
+        "simulated_transport_failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accept_bare": {
+          "type": "boolean"
+        }
+      }
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "verified": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "OK",
+        "OK-REVIEWED",
+        "CORRECTED",
+        "NEEDS-REVIEW",
+        "WRONG-ID",
+        "MISMATCH",
+        "NOT-FOUND",
+        "RETRACTED",
+        "CONCERN",
+        "SUPERSEDED",
+        "UNVERIFIED"
+      ],
+      "properties": {
+        "OK": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "OK-REVIEWED": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "CORRECTED": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "NEEDS-REVIEW": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "WRONG-ID": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "MISMATCH": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "NOT-FOUND": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "RETRACTED": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "CONCERN": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "SUPERSEDED": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "UNVERIFIED": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit_pass": {
+      "type": "boolean"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "duplicate_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/duplicate"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/error"
+      }
+    },
+    "needs_review": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": [
+        "OK",
+        "OK-REVIEWED",
+        "CORRECTED",
+        "NEEDS-REVIEW",
+        "WRONG-ID",
+        "MISMATCH",
+        "NOT-FOUND",
+        "RETRACTED",
+        "CONCERN",
+        "SUPERSEDED",
+        "UNVERIFIED"
+      ]
+    },
+    "cited": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "first_author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "year": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "enum": [
+            "ids",
+            "parsed"
+          ]
+        },
+        "cited_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "source",
+        "url",
+        "http_status",
+        "fetched_at",
+        "raw_sha256",
+        "raw_path"
+      ],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "http_status": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "fetched_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "via": {
+          "type": "string"
+        }
+      }
+    },
+    "correction": {
+      "type": "object",
+      "required": [
+        "ref_type",
+        "pmid",
+        "source"
+      ],
+      "properties": {
+        "ref_type": {
+          "type": "string"
+        },
+        "pmid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "resolved": {
+      "type": "object",
+      "required": [
+        "title",
+        "authors",
+        "first_author",
+        "year",
+        "journal",
+        "pmid",
+        "doi",
+        "pmc",
+        "publication_types",
+        "corrections",
+        "has_abstract"
+      ],
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "first_author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "year": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pmid": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pmc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publication_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "corrections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/correction"
+          }
+        },
+        "has_abstract": {
+          "type": "boolean"
+        },
+        "match_basis": {
+          "type": "object",
+          "description": "Normalized comparison inputs kept so a ledger row can be re-matched without the network.",
+          "required": [
+            "title_variants",
+            "author_families",
+            "years",
+            "journal_variants",
+            "signals",
+            "sources"
+          ],
+          "properties": {
+            "title_variants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "author_families": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "years": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "journal_variants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "lead_collective": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "signals": {
+              "type": "object",
+              "required": [
+                "retraction",
+                "concern",
+                "erratum",
+                "notice"
+              ],
+              "properties": {
+                "retraction": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "concern": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "erratum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "notice": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "collective_names": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "decision",
+        "note",
+        "at"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "confirm",
+            "reject",
+            "superseded"
+          ]
+        },
+        "note": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "superseded_by": {
+          "type": "string"
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "required": [
+        "key",
+        "type",
+        "id",
+        "raw",
+        "context",
+        "claim",
+        "cited",
+        "status",
+        "reason",
+        "note",
+        "flags",
+        "resolved",
+        "found",
+        "candidates",
+        "same_work_as",
+        "review",
+        "evidence"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Z]+:.+"
+        },
+        "type": {
+          "enum": [
+            "PMID",
+            "DOI",
+            "PMC",
+            "ARXIV",
+            "NCT",
+            "ISRCTN",
+            "EUDRACT",
+            "URL",
+            "GUIDELINE",
+            "REF"
+          ]
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "raw": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claim": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cited": {
+          "$ref": "#/$defs/cited"
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolved": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/resolved"
+            }
+          ]
+        },
+        "found": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "same_work_as": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/review"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "occurrences": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "from_ledger": {
+          "type": "boolean"
+        },
+        "match_basis": {
+          "enum": [
+            "title",
+            "context-title",
+            "author-year",
+            "existence-only",
+            null
+          ]
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "duplicate": {
+      "type": "object",
+      "required": [
+        "key",
+        "count",
+        "kind"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "kind": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "key",
+        "source",
+        "error"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

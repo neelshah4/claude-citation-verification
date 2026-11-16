@@ -17,7 +17,7 @@ PMIDs are not all 7-8 digits. A narrower pattern silently drops shorter identifi
 ## Non-PubMed fallback API endpoints (detail behind Verification Workflow step 1 / "Paper not found")
 
 - OpenAlex: `https://api.openalex.org/works/doi:<doi>` for an exact DOI lookup, or
-  `?filter=title.search:<title>&mailto=your-email@example.com` for a title search.
+  `?filter=title.search:<title>` for a title search.
 - Semantic Scholar: `https://api.semanticscholar.org/graph/v1/paper/DOI:<doi>?fields=title,year,authors,externalIds`.
   `externalIds.PubMed` can recover a missing PMID. The DOI endpoint is reliable; the search endpoint is
   rate-limited and worth one retry before falling through to web search / Google Scholar.
@@ -37,6 +37,7 @@ Do NOT generate PMIDs from memory under any circumstances.
 
 ## Versions
 
+- 2026-11-16 — Added the Retraction / Erratum note that the PubMed connector's metadata call does not expose `CommentsCorrections` (read raw efetch XML), a Deterministic verifier paragraph, and the shared 11-status vocabulary. Removed a contact address from the OpenAlex title-search example. No trigger phrase or output contract changed.
 - 2026-09-08 — Trimmed to meet the skill's word-count target per the internal audit rubric. Moved inline incident narrative, dated rationale, and worked examples here. No trigger phrase, verification workflow, or output-contract behavior changed.
 - 2026-08-29 — Added the lint-enforced `## Feedback loop` contract block (capture via an internal tracking script); no behavioral change.
 - 2026-06-04 — Best-practices pass (Anthropic "how we use skills"): added `lastReviewed`; added Versions section; added clinical-citation-audit composition cross-ref. No trigger phrases, no verification workflow, and no output contract changed. The April 2026 PMID-incident content is unchanged.

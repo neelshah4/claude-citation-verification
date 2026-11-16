@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
 string rather than imposing a semantic version it does not have.
 
+## [2026.11.16] - 2026-11-16
+
+### Changed
+- Statuses now come from a script. `verify_citations.py` fetches the registry records (PubMed, Crossref, OpenAlex, arXiv, ClinicalTrials.gov, and others), compares each record with the citing text, and assigns the status; the `citation-verifier` agent and the `extras/citation-audit.js` workflow run it and review only the records it leaves open. Model-read verification remains as a labelled fallback (`verifier: manual`) when Python or the script cannot run.
+- One 11-status vocabulary across skill, agent, and workflow: `OK`, `OK-REVIEWED`, `CORRECTED`, `NEEDS-REVIEW`, `WRONG-ID`, `MISMATCH`, `NOT-FOUND`, `RETRACTED`, `CONCERN`, `SUPERSEDED`, `UNVERIFIED`. A transport failure is `UNVERIFIED`, never `NOT-FOUND`.
+- The workflow re-hashes the audit file in a second agent and compares it in code, shards `NEEDS-REVIEW` records to reviewers, and reads its log root and scripts directory from `CITATION_AUDIT_LOG_DIR` and `CITATION_SCRIPTS_DIR` (or the `logRoot` and `scriptsDir` arguments).
+- `SKILL.md` notes that the PubMed connector's metadata call does not expose `CommentsCorrections`, so errata and retractions must be read from raw `efetch` XML.
+- The OpenAlex title-search example in `references/history.md` no longer carries a contact address.
+
+### Added
+- `skills/citation-verification/scripts/verify_citations.py` (subcommands `audit`, `block`, `review`, `extract`) and `claim_packets.py` (`build`, `check`), standard library only.
+- Claim-support tier: `references/claim-support.md` and `references/verdict-schema.json`.
+- Eval bank in `skills/citation-verification/evals/`: 63 verifier cases (`cases.jsonl`, `grade.py`) and 33 claim-gate cases (`claim_cases.jsonl`, `grade_claims.py`), with a README.
+- Optional Stop hook `hooks/citation-ledger-check.py`, with its README and a 31-test suite in `hooks/tests/`. The plugin does not register the hook.
+- Environment variables `CITATION_AUDIT_MAILTO`, `NCBI_API_KEY`, `CITATION_HOOK_MODE`, `CITATION_AUDIT_LOG_DIR`, `CITATION_SCRIPTS_DIR`; documented in the README.
+
 ## [2026.9.24] - 2026-09-24
 
 ### Added
