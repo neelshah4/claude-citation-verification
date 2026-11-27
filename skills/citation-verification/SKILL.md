@@ -199,10 +199,10 @@ Failed:   [Z] (not found)
 - **fabrication-audit**: owns non-academic verifiable specifics (scope split above); the two skills compose
   without overlap.
 - **clinical-citation-audit**: the pre+post-flight gate wrapping this skill for the six clinical-writing
-  skills (manuscript-reviewer, scientific-writing, literature-review, clinical-reports,
+  skills (manuscript-reviewer, scientific-writing, deep-research, clinical-reports,
   clinical-evidence-debate, clinical-teaching-deck); that skill enforces, this skill supplies the
   methodology, and defers block formatting to its audit summary when invoked from the pipeline.
-- **manuscript-reviewer**, **review-response**, **literature-review**, **icu-clinical-consult**,
+- **manuscript-reviewer**, **review-response**, **deep-research**, **icu-clinical-consult**,
   **interesting-articles-formatting**: each hands its citation-bearing content through this skill's
   workflow (icu-clinical-consult routes free-standing doses to `fabrication-audit` instead).
 - **writing-anti-ai**: vague attributions it flags ("Experts believe...") should be replaced with verified

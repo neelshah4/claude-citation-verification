@@ -284,7 +284,7 @@ cd hooks/tests && python3 -m unittest test_citation_ledger_check     # hook, no 
 
 ## Version
 
-`2026.11.27`, the date of the latest release. Calendar versioning, because the skill is date-versioned. See [CHANGELOG.md](CHANGELOG.md).
+`2026.11.27.1`, the date of the latest release plus a same-day patch number. Calendar versioning, because the skill is date-versioned. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

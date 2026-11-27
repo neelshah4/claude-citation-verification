@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
 string rather than imposing a semantic version it does not have.
 
+## [2026.11.27.1] - 2026-11-27
+
+### Changed
+- The Integration section names `deep-research` in place of `literature-review`, which is no longer maintained.
+
 ## [2026.11.27] - 2026-11-27
 
 ### Changed
