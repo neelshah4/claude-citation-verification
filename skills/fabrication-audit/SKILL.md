@@ -1,7 +1,14 @@
 ---
 name: fabrication-audit
 description: >-
-  Silent post-draft verification pass catching unverified specifics before they leave the response. Triggers on ANY substantive output containing factual claims about the world: numbers, dates, addresses, jurisdictions (which office/agency covers a place), distances, drive times, government fees, processing times, version numbers, current officeholders, drug doses, prices, statistics, sports stats/cap hits, ETF/stock specifics, salaries, antimicrobial susceptibility/resistance rates — any "the X is Y" / "X serves Y" pattern where Y is a specific retrievable value. Embedded sub-claims in longer responses get same treatment as direct questions. Triggers on nearly every substantive turn except greetings, pure code, pure math derivations, fictional creative writing. Does NOT trigger on academic citations (PMIDs/DOIs/journal refs) — citation-verification handles those exclusively. Runs silently, fixes draft before sending. Err very heavily on triggering. When in doubt: TRIGGER.
+  Silent post-draft pass that verifies specific retrievable values (numbers, dates, fees, doses,
+  jurisdictions, distances, prices, stats, any "the X is Y" / "X serves Y" claim) before a reply ships.
+  Fires on nearly every substantive turn, except greetings, pure code, pure math or fiction; not academic
+  citations (citation-verification owns those). Err very heavily on triggering; when in doubt, TRIGGER.
+  Covers addresses, jurisdictions (which office/agency covers a place), drive times, government fees,
+  processing times, version numbers, current officeholders, drug doses, sports stats/cap hits, ETF/stock
+  specifics, salaries, antimicrobial susceptibility/resistance rates; embedded sub-claims in longer
+  responses get the same treatment. Runs silently, fixes the draft before sending.
 lastReviewed: 2026-09-24
 ---
 # Fabrication audit — silent verification pass

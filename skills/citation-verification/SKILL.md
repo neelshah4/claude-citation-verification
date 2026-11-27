@@ -1,6 +1,15 @@
 ---
 name: citation-verification
-description: Verify every academic citation and reference in real time. Triggers whenever Claude cites a paper, recommends a reference, quotes evidence, or produces output containing author-year citations, DOIs, PMIDs, or journal references — manuscripts, grants, abstracts, literature reviews, clinical consults with cited evidence, rebuttal letters, teaching materials, any response where a specific study is named. Scope is academic citations ONLY — for non-academic verifiable specifics (jurisdictions, fees, addresses, free-standing drug doses, distances, prices, sports/finance specifics), fabrication-audit handles those. The two skills compose. Runs as silent verification pass — no separate output unless verification fails or user requests audit. Never fabricate a citation. If unverifiable, mark [CITATION NEEDED]. Err heavily on triggering — any time a paper is mentioned by name, this skill should be active.
+description: >-
+  Silently verifies every academic citation (author-year, DOI, PMID, journal ref) before it ships: fires
+  whenever a paper is named or cited, in manuscripts, grants, abstracts, reviews, consults, rebuttals,
+  teaching material; err heavily on triggering. Scope: academic citations ONLY; fabrication-audit handles
+  non-academic specifics (jurisdictions, fees, addresses, free-standing drug doses, distances, prices,
+  sports/finance); the two compose. Also fires when Claude recommends a reference, quotes evidence, or
+  produces output with author-year citations, DOIs, PMIDs or journal references, including clinical
+  consults with cited evidence and any response where a specific study is named. No separate output unless
+  verification fails or the user requests an audit. Never fabricate a citation; if unverifiable, mark
+  [CITATION NEEDED].
 lastReviewed: 2026-11-16
 ---
 # Citation Verification

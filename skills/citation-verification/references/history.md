@@ -41,3 +41,4 @@ Do NOT generate PMIDs from memory under any circumstances.
 - 2026-09-08 — Trimmed to meet the skill's word-count target per the internal audit rubric. Moved inline incident narrative, dated rationale, and worked examples here. No trigger phrase, verification workflow, or output-contract behavior changed.
 - 2026-08-29 — Added the lint-enforced `## Feedback loop` contract block (capture via an internal tracking script); no behavioral change.
 - 2026-06-04 — Best-practices pass (Anthropic "how we use skills"): added `lastReviewed`; added Versions section; added clinical-citation-audit composition cross-ref. No trigger phrases, no verification workflow, and no output contract changed. The April 2026 PMID-incident content is unchanged.
+- 2026-11-27 — Description reordered so the trigger phrases fall inside the 300-character listing window; no behavior change.

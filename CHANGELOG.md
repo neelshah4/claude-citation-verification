@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is calendar-based (`YYYY.M.D`), matching the skill's own dated version
 string rather than imposing a semantic version it does not have.
 
+## [2026.11.27] - 2026-11-27
+
+### Changed
+- The skill description is reordered so the trigger phrases and the academic-citations-only scope fall inside the first 300 characters that skill listings show. No trigger, scope or procedure changed.
+- The bundled `fabrication-audit` skill carries the same description reorder, synced from the standalone repo.
+- `citation-verifier` agent: contract item 5 now holds only the style-pass instruction, and the voice rules (no filler adverbs, no hedging chains, concrete numbers) sit on their own line after item 6. No rule was added or removed.
+
 ## [2026.11.16] - 2026-11-16
 
 ### Changed
